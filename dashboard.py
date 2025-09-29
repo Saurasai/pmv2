@@ -239,8 +239,12 @@ with tab1:
                             with col1:
                                 st.markdown(f"**Content**: {edited_draft}")
                             with col2:
-                                copy_key = f"{platform}_{i}_copy"
+                                copy_key = f"copy_status_{platform}_{i}"
                                 if copy_key not in st.session_state:
+                                    st.session_state[copy_key] = False
+                                if st.session_state[copy_key]:
+                                    st.success(f"🎉 Copied post {i} to clipboard!")
+                                    st.balloons()
                                     st.session_state[copy_key] = False
                                 copy_script = f"""
                                 <button onclick="copyToClipboard()">📋 Copy</button>
@@ -248,24 +252,23 @@ with tab1:
                                 function copyToClipboard() {{
                                     navigator.clipboard.writeText(`{edited_draft.replace("`", "\\`").replace("\n", "\\n").replace('"', '\\"').replace("'", "\\'")}`)
                                         .then(() => {{
+                                            // Update session state via form submission
+                                            const form = document.createElement('form');
+                                            form.method = 'POST';
+                                            form.action = window.location.href;
                                             const input = document.createElement('input');
-                                            input.id = '{copy_key}';
-                                            input.value = 'copied';
-                                            document.body.appendChild(input);
-                                            input.dispatchEvent(new Event('change'));
-                                            input.remove();
+                                            input.type = 'hidden';
+                                            input.name = '{copy_key}';
+                                            input.value = 'true';
+                                            form.appendChild(input);
+                                            document.body.appendChild(form);
+                                            form.submit();
                                         }})
                                         .catch(err => alert("Failed to copy: " + err));
                                 }}
                                 </script>
                                 """
                                 components.html(copy_script, height=50)
-                                copy_trigger = st.text_input("", key=copy_key, label_visibility="hidden")
-                                if copy_trigger == "copied":
-                                    st.success(f"🎉 Copied post {i} to clipboard!")
-                                    st.balloons()
-                                    logger.debug(f"Draft {i} copied for {platform}")
-                                    st.session_state[copy_key] = False
                             with col3:
                                 if st.button("💾 Save", key=f"{platform}_{i}_save"):
                                     payload = {"content": clean_draft_content(edited_draft), "platform": platform}
