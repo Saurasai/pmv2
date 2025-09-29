@@ -13,21 +13,7 @@ import os
 
 import streamlit.components.v1 as components
 
-with col2:
-    if st.button("📋 Copy", key=f"{platform}_{i}_copy"):
-        # JavaScript to copy text to clipboard
-        copy_script = f"""
-        <button onclick="copyToClipboard()">Copy</button>
-        <script>
-        function copyToClipboard() {{
-            navigator.clipboard.writeText(`{edited_draft.replace("`", "\\`").replace("\n", "\\n")}`);
-            alert("Draft copied to clipboard!");
-        }}
-        </script>
-        """
-        components.html(copy_script)
-        st.success(f"🎉 Copied draft {i} to clipboard!")
-        logger.debug(f"Draft {i} copied for {platform}")
+
 
 # Load environment variables
 load_dotenv()
@@ -366,4 +352,5 @@ with tab3:
             st.success(f"🎉 Upgraded to {tier}!")  # Mock
             st.balloons()
             logger.info(f"User {st.session_state.user['email']} requested tier upgrade to {tier}")
+
 
