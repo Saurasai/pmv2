@@ -27,7 +27,7 @@ app = FastAPI(title="Post Muse", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://postmusev3.streamlit.app/",
+        "https://postmusev3.streamlit.app/,
         "http://localhost:8501",
     ],
     allow_credentials=True,
@@ -357,3 +357,4 @@ async def get_user(user_id: str = Depends(get_current_user)):
         logger.warning(f"User not found: user_id={user_id}")
 
         raise HTTPException(status_code=404, detail="User not found")
+
