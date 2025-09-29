@@ -5,19 +5,15 @@ from datetime import datetime
 import logging
 import re
 import asyncio
-import pyperclip
+import streamlit.components.v1 as components
 from api import generate_platform_drafts
 from config import PROMPT_TEMPLATES
 from dotenv import load_dotenv
 import os
 
-import streamlit.components.v1 as components
-
-
-
 # Load environment variables
 load_dotenv()
-API_BASE_URL = os.getenv("API_BASE_URL", "https://pmv2-production.up.railway.app/api")  # Use one variable
+API_BASE_URL = os.getenv("API_BASE_URL", "https://pmv2-production.up.railway.app/api")
 logger = logging.getLogger(__name__)
 
 # Configure logging
@@ -42,7 +38,7 @@ def get_user_info(api_key: str) -> dict:
     try:
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         with st.spinner("🔄 Fetching user info..."):
-            response = requests.get(f"{API_BASE_URL}/user", headers=headers, timeout=5)  # Use API_BASE_URL
+            response = requests.get(f"{API_BASE_URL}/user", headers=headers, timeout=5)
             response.raise_for_status()
             user_info = response.json()
             logger.info(f"User info fetched for api_key: {api_key[:4]}... - {user_info}")
@@ -76,7 +72,7 @@ def login():
                     with st.spinner("🔄 Logging in..."):
                         try:
                             response = requests.post(
-                                f"{API_BASE_URL}/login",  # Use API_BASE_URL
+                                f"{API_BASE_URL}/login",
                                 json={"email": email.lower(), "password": password},
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer dummy-token"},
                                 timeout=5
@@ -93,7 +89,7 @@ def login():
                             st.error(f"❌ Login failed: {error_msg}")
                             logger.warning(f"Login failed for {email}: {e.response.text if e.response else str(e)}")
                         except requests.ConnectionError:
-                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")  # Update error message
+                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")
                             logger.error(f"Connection error for {email}: Server not reachable")
                         except requests.Timeout:
                             st.error("❌ Request timed out. Check your network or server status.")
@@ -124,7 +120,7 @@ def login():
                                 "admin_secret": admin_secret if is_admin else None
                             }
                             logger.info(f"Sending registration request for {email}: {payload}")
-                            response = requests.post(f"{API_BASE_URL}/user", json=payload, headers={"Content-Type": "application/json"}, timeout=5)  # Use API_BASE_URL
+                            response = requests.post(f"{API_BASE_URL}/user", json=payload, headers={"Content-Type": "application/json"}, timeout=5)
                             response.raise_for_status()
                             response_json = response.json()
                             st.session_state.user = {"email": email.lower(), "api_key": response_json["api_key"]}
@@ -137,7 +133,7 @@ def login():
                             logger.warning(f"Registration failed for {email}: {e.response.text if e.response else str(e)}")
                             st.error(f"❌ Registration failed: {error_msg}")
                         except requests.ConnectionError:
-                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")  # Update error message
+                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")
                             logger.error(f"Connection error for {email}: Server not reachable")
                         except requests.Timeout:
                             st.error("❌ Request timed out. Check your network or server status.")
@@ -243,21 +239,26 @@ with tab1:
                             with col1:
                                 st.markdown(f"**Content**: {edited_draft}")
                             with col2:
-                                if st.button("📋 Copy", key=f"{platform}_{i}_copy"):
-                                    try:
-                                        pyperclip.copy(edited_draft)
-                                        st.success(f"🎉 Copied draft {i} to clipboard!")
-                                        st.balloons()
-                                        logger.debug(f"Draft {i} copied for {platform}")
-                                    except Exception as e:
-                                        st.error(f"❌ Failed to copy to clipboard: {str(e)}")
-                                        logger.error(f"Clipboard copy failed for {platform}: {str(e)}")
+                                copy_script = f"""
+                                <button onclick="copyToClipboard()">📋 Copy</button>
+                                <script>
+                                function copyToClipboard() {{
+                                    navigator.clipboard.writeText(`{edited_draft.replace("`", "\\`").replace("\n", "\\n").replace('"', '\\"').replace("'", "\\'")}`)
+                                        .then(() => alert("Draft copied to clipboard!"))
+                                        .catch(err => alert("Failed to copy: " + err));
+                                }}
+                                </script>
+                                """
+                                components.html(copy_script, height=50)
+                                if st.button("📋 Trigger Copy", key=f"{platform}_{i}_copy"):
+                                    st.success(f"🎉 Copied draft {i} to clipboard! Click the button above to copy.")
+                                    logger.debug(f"Draft {i} copied for {platform}")
                             with col3:
                                 if st.button("💾 Save Draft", key=f"{platform}_{i}_save"):
                                     payload = {"content": clean_draft_content(edited_draft), "platform": platform}
                                     with st.spinner(f"🔄 Saving draft to {platform.capitalize()}..."):
                                         try:
-                                            response = requests.post(f"{API_BASE_URL}/draft", json=payload, headers=headers, timeout=5)  # Use API_BASE_URL
+                                            response = requests.post(f"{API_BASE_URL}/draft", json=payload, headers=headers, timeout=5)
                                             response.raise_for_status()
                                             st.success(f"🎉 Draft {i} saved for {platform.capitalize()}!")
                                             st.snow()
@@ -267,7 +268,7 @@ with tab1:
                                             st.error(f"❌ Failed to save draft: {error_msg}")
                                             logger.warning(f"Draft save failed for {platform}: {e.response.text if e.response else str(e)}")
                                         except requests.ConnectionError:
-                                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")  # Update error message
+                                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")
                                             logger.error(f"Connection error for {platform} draft save")
                                         except requests.Timeout:
                                             st.error("❌ Request timed out. Check your network or server status.")
@@ -281,7 +282,7 @@ with tab1:
                                     payload = {"post": cleaned_draft, "platforms": [platform]}
                                     with st.spinner(f"📬 Posting to {platform.capitalize()}..."):
                                         try:
-                                            response = requests.post(f"{API_BASE_URL}/post", json=payload, headers=headers, timeout=5)  # Use API_BASE_URL
+                                            response = requests.post(f"{API_BASE_URL}/post", json=payload, headers=headers, timeout=5)
                                             response.raise_for_status()
                                             response_json = response.json()
                                             post_ids = response_json["postIds"]
@@ -298,7 +299,7 @@ with tab1:
                                             st.error(f"❌ Failed to post: {error_msg}")
                                             logger.warning(f"Post failed for {platform}: {e.response.text if e.response else str(e)}")
                                         except requests.ConnectionError:
-                                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")  # Update error message
+                                            st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")
                                             logger.error(f"Connection error for {platform} post")
                                         except requests.Timeout:
                                             st.error("❌ Request timed out. Check your network or server status.")
@@ -317,7 +318,7 @@ with tab2:
                 progress_bar = st.progress(0)
                 try:
                     asyncio.run(simulate_progress(progress_bar))
-                    response = requests.get(f"{API_BASE_URL}/drafts", headers=headers, timeout=5)  # Use API_BASE_URL
+                    response = requests.get(f"{API_BASE_URL}/drafts", headers=headers, timeout=5)
                     response.raise_for_status()
                     drafts = response.json()
                     df = pd.DataFrame(drafts)
@@ -333,7 +334,7 @@ with tab2:
                     st.error(f"❌ Error fetching drafts: {error_msg}")
                     logger.warning(f"Draft fetch failed: {e.response.text if e.response else str(e)}")
                 except requests.ConnectionError:
-                    st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")  # Update error message
+                    st.error(f"❌ Failed to connect to the server at {API_BASE_URL}.")
                     logger.error("Connection error for drafts")
                 except requests.Timeout:
                     st.error("❌ Request timed out. Check your network or server status.")
@@ -352,5 +353,3 @@ with tab3:
             st.success(f"🎉 Upgraded to {tier}!")  # Mock
             st.balloons()
             logger.info(f"User {st.session_state.user['email']} requested tier upgrade to {tier}")
-
-
