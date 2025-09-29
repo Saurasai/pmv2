@@ -11,6 +11,8 @@ from config import PROMPT_TEMPLATES
 from dotenv import load_dotenv
 import os
 
+API_BASE_URL = os.getenv("API_BASE_URL", "https://pmv2-production.up.railway.app/api")
+
 # Load environment variables
 load_dotenv()
 API_BASE = os.getenv("API_BASE", "http://localhost:8000/api")
@@ -346,4 +348,5 @@ with tab3:
         if st.button("🚀 Update Tier", key="update_tier", type="primary"):
             st.success(f"🎉 Upgraded to {tier}!")  # Mock
             st.balloons()
+
             logger.info(f"User {st.session_state.user['email']} requested tier upgrade to {tier}")
